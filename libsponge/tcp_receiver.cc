@@ -5,15 +5,36 @@
 // For Lab 2, please replace with a real implementation that passes the
 // automated checks run by `make check_lab2`.
 
-template <typename... Targs>
-void DUMMY_CODE(Targs &&... /* unused */) {}
-
 using namespace std;
 
 void TCPReceiver::segment_received(const TCPSegment &seg) {
-    DUMMY_CODE(seg);
+    auto seqno = seg.header().seqno;
+    auto syn = seg.header().syn;
+    auto fin = seg.header().fin;
+    const auto& payload = seg.payload();
+    if (syn) {
+        _isn = seqno;
+    }
+    if (_isn.has_value()) {
+        auto abs_seqno = unwrap(seqno, _isn.value(), _reassembler.stream_out().bytes_written());
+        if (abs_seqno == 0) {   // SYN
+            abs_seqno = 1;
+        }
+        _reassembler.push_substring(payload.copy(), abs_seqno - 1, fin);
+    }
 }
 
-optional<WrappingInt32> TCPReceiver::ackno() const { return {}; }
+optional<WrappingInt32> TCPReceiver::ackno() const {
+    if (!_isn.has_value())
+        return {};
+    auto stream_index = _reassembler.stream_out().bytes_written();
+    auto abs_seqno = stream_index + 1;
+    if (_reassembler.stream_out().input_ended()) {
+        ++abs_seqno;
+    }
+    return wrap(abs_seqno, _isn.value());
+}
 
-size_t TCPReceiver::window_size() const { return {}; }
+size_t TCPReceiver::window_size() const {
+    return _reassembler.stream_out().remaining_capacity();
+}
