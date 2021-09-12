@@ -3,13 +3,14 @@
 
 #include <string>
 #include <vector>
-
 //! \brief An in-order byte stream.
 
 //! Bytes are written on the "input" side and read from the "output"
 //! side.  The byte stream is finite: the writer can end the input,
 //! and then no more bytes can be written.
 class ByteStream {
+  public:
+    friend class StreamReassembler;
   private:
     // Your code here -- add private members as necessary.
 
@@ -27,6 +28,8 @@ class ByteStream {
     size_t _bytes_read = 0;
     size_t _bytes_written = 0;
     bool _input_ended = false;
+  private:
+    size_t advance(size_t ptr, size_t d) const;
   public:
     //! Construct a stream with room for `capacity` bytes.
     ByteStream(const size_t capacity);

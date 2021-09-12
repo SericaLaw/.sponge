@@ -2,10 +2,10 @@
 #define SPONGE_LIBSPONGE_STREAM_REASSEMBLER_HH
 
 #include "byte_stream.hh"
-
 #include <cstdint>
 #include <string>
-
+#include <list>
+#include <utility>
 //! \brief A class that assembles a series of excerpts from a byte stream (possibly out of order,
 //! possibly overlapping) into an in-order byte stream.
 class StreamReassembler {
@@ -14,7 +14,15 @@ class StreamReassembler {
 
     ByteStream _output;  //!< The reassembled in-order byte stream
     size_t _capacity;    //!< The maximum number of bytes
+    std::list<std::pair<size_t, size_t>> intervals{};
+    size_t eof_tail_index{};
+    bool got_eof{};
 
+  private:
+    // write slice to _output, start = index, return the length that actually written
+    size_t write_slice(const std::string &data, const size_t index, ByteStream &bs);
+    size_t set_tail(const size_t new_tail_index, ByteStream &bs);
+    void push_interval(std::pair<size_t, size_t>& interval);
   public:
     //! \brief Construct a `StreamReassembler` that will store up to `capacity` bytes.
     //! \note This capacity limits both the bytes that have been reassembled,

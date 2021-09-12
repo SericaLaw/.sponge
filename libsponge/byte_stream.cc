@@ -17,7 +17,7 @@ size_t ByteStream::write(const string &data) {
     size_t i = 0, n = data.size();
     while ((tail + 1) % (cap + 1) != head && i < n && not input_ended()) {
         buf[tail] = data[i];
-        tail = (tail + 1) % (cap + 1);
+        tail = advance(tail, 1);
         ++i;
         ++_bytes_written;
     }
@@ -41,7 +41,7 @@ string ByteStream::peek_output(const size_t len) const {
     size_t remain = len;
     while (remain > 0 && i != tail) {
         res += buf[i];
-        i = (i + 1) % (cap + 1);
+        i = advance(i, 1);
         --remain;
     }
     return res;
@@ -51,7 +51,7 @@ string ByteStream::peek_output(const size_t len) const {
 void ByteStream::pop_output(const size_t len) {
     size_t remain = len;
     while (remain > 0 && head != tail) {
-        head = (head + 1) % (cap + 1);
+        head = advance(head, 1);
         --remain;
         _bytes_read++;
     }
@@ -81,3 +81,5 @@ bool ByteStream::eof() const { return input_ended() && head == tail; }
 size_t ByteStream::bytes_written() const { return _bytes_written; }
 
 size_t ByteStream::bytes_read() const { return _bytes_read; }
+
+size_t ByteStream::advance(size_t ptr, size_t d) const { return (ptr + d) % (cap + 1); }
