@@ -42,8 +42,8 @@ class TCPSender {
     // segment, time left before re-trans, re-trans count
     // can use a single timer and counter instead, but in real-world each segment should have its own
     std::list<std::tuple<TCPSegment, size_t, unsigned int>> _segments_pending{};    // should within the receiver's window
-    bool syned{false};
-    bool fined{false};
+    bool _syned{false};
+    bool _fined{false};
     bool zero_window_size{false};
 
   private:
@@ -105,6 +105,8 @@ class TCPSender {
     //! \brief relative seqno for the next byte to be sent
     WrappingInt32 next_seqno() const { return wrap(_next_seqno, _isn); }
     //!@}
+
+    bool fined() const { return _fined; }
 };
 
 #endif  // SPONGE_LIBSPONGE_TCP_SENDER_HH

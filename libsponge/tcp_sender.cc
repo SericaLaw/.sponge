@@ -31,15 +31,16 @@ uint64_t TCPSender::bytes_in_flight() const {
 
 void TCPSender::fill_window() {
     TCPSegmentBuilder builder;
-    if (!syned) {
+    if (!_syned) {
         builder.with_seqno(next_seqno()).with_syn();
         _send(builder);
-        syned = true;
+        _syned = true;
         return;
     }
     size_t receiver_window_remaining = _receiver_window_right - next_seqno_absolute();
     size_t payload_len_limit = min(receiver_window_remaining, TCPConfig::MAX_PAYLOAD_SIZE);
-    while (payload_len_limit > 0 && !fined) {
+    while (payload_len_limit > 0 && !_fined) {
+        // this will move _stream's head
         string payload = _stream.read(payload_len_limit);
         builder.with_seqno(next_seqno()).with_data(payload);
 
@@ -56,10 +57,10 @@ void TCPSender::fill_window() {
             // else, receiver has enough room for fin, but length is limited by MAX_PAYLOAD_SIZE, send fin
             if (payload.size() < payload_len_limit) {
                 builder.with_fin();
-                fined = true;   // notify fin while carry payload; payload can be empty
+                _fined = true;   // notify fin while carry payload; payload can be empty
             } else if (receiver_window_remaining > payload_len_limit) {
                 builder.with_fin();
-                fined = true;
+                _fined = true;
             }
             _send(builder);
         }

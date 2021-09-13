@@ -6,6 +6,8 @@
 #include "tcp_sender.hh"
 #include "tcp_state.hh"
 
+#include <optional>
+
 //! \brief A complete endpoint of a TCP connection
 class TCPConnection {
   private:
@@ -20,6 +22,17 @@ class TCPConnection {
     //! for 10 * _cfg.rt_timeout milliseconds after both streams have ended,
     //! in case the remote TCPConnection doesn't know we've received its whole stream?
     bool _linger_after_streams_finish{true};
+
+    // added
+    size_t _time_since_last_segment_received{0};
+    std::optional<size_t> _time_done{};
+    bool _rst_received{false};
+    bool _rst_set{false};
+
+  private:
+    void _send_outbound_segments();
+    bool _done() const;
+    void _check_done();
 
   public:
     //! \name "Input" interface for the writer
