@@ -5,9 +5,11 @@
 #include "tcp_config.hh"
 #include "tcp_segment.hh"
 #include "wrapping_integers.hh"
+#include "tcp_segment_builder.hh"
 
 #include <functional>
 #include <queue>
+#include <list>
 
 //! \brief The "sender" part of a TCP implementation.
 
@@ -31,6 +33,22 @@ class TCPSender {
 
     //! the (absolute) sequence number for the next byte to be sent
     uint64_t _next_seqno{0};
+
+    // added members:
+    uint16_t _receiver_window_size{1};
+    uint64_t _receiver_window_left{0};
+    uint64_t _receiver_window_right{1};
+    unsigned int _retransmission_timeout;
+    // segment, time left before re-trans, re-trans count
+    // can use a single timer and counter instead, but in real-world each segment should have its own
+    std::list<std::tuple<TCPSegment, size_t, unsigned int>> _segments_pending{};    // should within the receiver's window
+    bool syned{false};
+    bool fined{false};
+    bool zero_window_size{false};
+
+  private:
+    // only use this method when sending a segment at its first time
+    void _send(TCPSegmentBuilder& builder);
 
   public:
     //! Initialize a TCPSender
