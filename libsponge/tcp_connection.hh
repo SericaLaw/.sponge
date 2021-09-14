@@ -26,13 +26,14 @@ class TCPConnection {
     // added
     size_t _time_since_last_segment_received{0};
     std::optional<size_t> _time_done{};
-    bool _rst_received{false};
+    bool _active{true};
     bool _rst_set{false};
 
   private:
     void _send_outbound_segments();
     bool _done() const;
     void _check_done();
+    void _reset(bool send_rst);
 
   public:
     //! \name "Input" interface for the writer

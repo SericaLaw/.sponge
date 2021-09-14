@@ -31,15 +31,14 @@ uint64_t TCPSender::bytes_in_flight() const {
 
 void TCPSender::fill_window() {
     TCPSegmentBuilder builder;
-    if (!_syned) {
+    if (in_closed()) {   // no syn sent
         builder.with_seqno(next_seqno()).with_syn();
         _send(builder);
-        _syned = true;
         return;
     }
     size_t receiver_window_remaining = _receiver_window_right - next_seqno_absolute();
     size_t payload_len_limit = min(receiver_window_remaining, TCPConfig::MAX_PAYLOAD_SIZE);
-    while (payload_len_limit > 0 && !_fined) {
+    while (payload_len_limit > 0 and not _fined) {
         // this will move _stream's head
         string payload = _stream.read(payload_len_limit);
         builder.with_seqno(next_seqno()).with_data(payload);
@@ -56,8 +55,8 @@ void TCPSender::fill_window() {
             // if length is limited by the receiver window, don't send fin
             // else, receiver has enough room for fin, but length is limited by MAX_PAYLOAD_SIZE, send fin
             if (payload.size() < payload_len_limit) {
-                builder.with_fin();
-                _fined = true;   // notify fin while carry payload; payload can be empty
+                builder.with_fin(); // notify fin while carry payload; payload can be empty
+                _fined = true;
             } else if (receiver_window_remaining > payload_len_limit) {
                 builder.with_fin();
                 _fined = true;
@@ -140,6 +139,8 @@ void TCPSender::send_empty_segment() {
 void TCPSender::_send(TCPSegmentBuilder &builder) {
     TCPSegment seg = builder.build_segment();
     _segments_out.push(seg);
-    _segments_pending.emplace_back(seg, _retransmission_timeout, 0);
+    // don't re-trans empty ACKs?
+    if (seg.length_in_sequence_space() > 0)
+        _segments_pending.emplace_back(seg, _retransmission_timeout, 0);
     _next_seqno += seg.length_in_sequence_space();
 }

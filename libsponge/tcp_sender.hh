@@ -107,6 +107,30 @@ class TCPSender {
     //!@}
 
     bool fined() const { return _fined; }
+  public:
+    bool in_closed() const { return next_seqno_absolute() == 0; }
+
+    bool in_syn_sent() const {
+        return next_seqno_absolute() > 0
+               and next_seqno_absolute() == bytes_in_flight();
+    }
+
+    bool in_syn_acked() const {
+        return (next_seqno_absolute() > bytes_in_flight() and not stream_in().eof())
+            or (stream_in().eof() and next_seqno_absolute() < stream_in().bytes_written() + 2);
+    }
+
+    bool in_fin_sent() const {
+        return stream_in().eof()
+               and next_seqno_absolute() == (stream_in().bytes_written() + 2)
+               and bytes_in_flight() > 0;
+    }
+
+    bool in_fin_acked() const {
+        return stream_in().eof()
+               and next_seqno_absolute() == (stream_in().bytes_written() + 2)
+               and bytes_in_flight() == 0;
+    }
 };
 
 #endif  // SPONGE_LIBSPONGE_TCP_SENDER_HH
