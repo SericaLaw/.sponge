@@ -18,6 +18,7 @@ void TCPReceiver::segment_received(const TCPSegment &seg) {
     if (_sender_isn.has_value()) {
         auto abs_seqno = unwrap(seqno, _sender_isn.value(), _reassembler.stream_out().bytes_written());
         if (abs_seqno == 0) {   // SYN
+            if (!syn) return;   // an invalid segment
             abs_seqno = 1;
         }
         _reassembler.push_substring(payload.copy(), abs_seqno - 1, fin);

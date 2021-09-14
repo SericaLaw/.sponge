@@ -78,6 +78,9 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
     } else {
         zero_window_size = false;
     }
+    if (absolute_ackno > _receiver_window_right) {
+        return;
+    }
     if (absolute_ackno > _receiver_window_left) {
         _receiver_window_size = zero_window_size ? 1 : window_size;
         _receiver_window_left = absolute_ackno;
