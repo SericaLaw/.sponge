@@ -8,6 +8,7 @@
 
 using namespace std;
 
+// TODO: need to use util/buffer.hh here
 ByteStream::ByteStream(const size_t capacity) : cap(capacity) {
     buf = std::vector<char>(capacity + 1);
 }

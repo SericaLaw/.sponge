@@ -157,6 +157,7 @@ bool TCPConnection::_done() const {
     return true;
 }
 
+// TODO: need to revisit here
 void TCPConnection::_check_done() {
     if (_done() and not _time_done.has_value()) {
         _time_done = _time_since_last_segment_received;
