@@ -64,6 +64,8 @@ size_t StreamReassembler::write_slice(const string &data, const size_t index, By
     size_t temp_tail = bs.tail;
     if (!overlap)
         temp_tail = bs.advance(bs.tail, index - tail_index);
+    // out of window
+    if (index > tail_index + bs.remaining_capacity()) return 0;
     while ((temp_tail + 1) % (bs.cap + 1) != bs.head && i < n) {
         bs.buf[temp_tail] = data[i];
         temp_tail = bs.advance(temp_tail, 1);

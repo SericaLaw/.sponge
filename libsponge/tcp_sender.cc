@@ -23,8 +23,8 @@ TCPSender::TCPSender(const size_t capacity, const uint16_t retx_timeout, const s
 
 uint64_t TCPSender::bytes_in_flight() const {
     uint64_t bytes = 0;
-    for (auto& tuple : _segments_pending) {
-        bytes += get<0>(tuple).length_in_sequence_space();
+    for (auto& seg : _segments_pending) {
+        bytes += seg.length_in_sequence_space();
     }
     return bytes;
 }
@@ -85,8 +85,9 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
         _receiver_window_left = absolute_ackno;
         _receiver_window_right = absolute_ackno + _receiver_window_size;
         _retransmission_timeout = _initial_retransmission_timeout;
+        _consecutive_retransmissions = 0;
         while (not _segments_pending.empty()) {
-            TCPSegment &seg = get<0>(_segments_pending.front());
+            TCPSegment &seg = _segments_pending.front();
             auto absolute_seqno = unwrap(seg.header().seqno, _isn, _receiver_window_left);
             if (absolute_seqno + seg.length_in_sequence_space() <= _receiver_window_left) {
                 _segments_pending.pop_front();
@@ -94,6 +95,12 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
                 break;
             }
         }
+        if (_segments_pending.empty()) {
+            _timer.stop();
+        } else {
+            _timer.start(_retransmission_timeout);
+        }
+        fill_window();
     } else if (absolute_ackno == _receiver_window_left) {
         // processed this ackno before
         _receiver_window_size = zero_window_size ? 1 : window_size;
@@ -104,30 +111,21 @@ void TCPSender::ack_received(const WrappingInt32 ackno, const uint16_t window_si
 
 //! \param[in] ms_since_last_tick the number of milliseconds since the last call to this method
 void TCPSender::tick(const size_t ms_since_last_tick) {
-    if (not _segments_pending.empty()) {
-        if (get<1>(_segments_pending.front()) < ms_since_last_tick) {
-            get<1>(_segments_pending.front()) = 0;
-        } else {
-            get<1>(_segments_pending.front()) -= ms_since_last_tick;
-        }
+    _timer.tick(ms_since_last_tick);
+    if (not _segments_pending.empty() and _timer.timeout()) {
+        _segments_out.push(_segments_pending.front());
+        ++_consecutive_retransmissions;
+        if (not zero_window_size)
+            _retransmission_timeout *= 2;
+        _timer.start(_retransmission_timeout);
     }
-    if (not _segments_pending.empty()) {
-        auto [seg, time_left, retransmission_count] = _segments_pending.front();
-        if (time_left == 0) {
-            _segments_out.push(seg);
-            if (not zero_window_size)
-                _retransmission_timeout *= 2;
-            get<1>(_segments_pending.front()) = _retransmission_timeout;
-            get<2>(_segments_pending.front())++;
-        }
+    if (_segments_pending.empty()) {
+        _timer.stop();
     }
 }
 
 unsigned int TCPSender::consecutive_retransmissions() const {
-    if (not _segments_pending.empty()) {
-        return get<2>(_segments_pending.front());
-    }
-    return 0;
+    return _consecutive_retransmissions;
 }
 
 void TCPSender::send_empty_segment() {
@@ -140,7 +138,13 @@ void TCPSender::_send(TCPSegmentBuilder &builder) {
     TCPSegment seg = builder.build_segment();
     _segments_out.push(seg);
     // don't re-trans empty ACKs?
-    if (seg.length_in_sequence_space() > 0)
-        _segments_pending.emplace_back(seg, _retransmission_timeout, 0);
+    if (seg.length_in_sequence_space() > 0) {
+        _segments_pending.push_back(seg);
+        // Every time a segment containing data (nonzero length in sequence space) is sent
+        // (whether it’s the first time or a retransmission), if the timer is not running, start it
+        if (not _timer.running()) {
+            _timer.start(_retransmission_timeout);
+        }
+    }
     _next_seqno += seg.length_in_sequence_space();
 }

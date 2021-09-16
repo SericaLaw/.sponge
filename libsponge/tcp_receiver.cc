@@ -22,7 +22,8 @@ void TCPReceiver::segment_received(const TCPSegment &seg) {
             if (!syn) return;   // an invalid segment
             abs_seqno = 1;
         }
-        _reassembler.push_substring(payload.copy(), abs_seqno - 1, fin);
+        size_t stream_index = abs_seqno - 1;
+        _reassembler.push_substring(payload.copy(), stream_index, fin);
     } // otherwise, it's in LISTEN
 }
 

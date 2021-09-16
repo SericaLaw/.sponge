@@ -6,6 +6,7 @@
 #include "tcp_segment.hh"
 #include "wrapping_integers.hh"
 #include "tcp_segment_builder.hh"
+#include "retransmission_timer.hh"
 
 #include <functional>
 #include <queue>
@@ -35,16 +36,19 @@ class TCPSender {
     uint64_t _next_seqno{0};
 
     // added members:
+    bool zero_window_size{false};
     uint16_t _receiver_window_size{1};
-    uint64_t _receiver_window_left{0};
-    uint64_t _receiver_window_right{1};
+    uint64_t _receiver_window_left{0};  // == last ackno from remote receiver
+    uint64_t _receiver_window_right{1}; // == last ackno + window_size of remote receiver
     unsigned int _retransmission_timeout;
-    // segment, time left before re-trans, re-trans count
-    // can use a single timer and counter instead, but in real-world each segment should have its own
-    std::list<std::tuple<TCPSegment, size_t, unsigned int>> _segments_pending{};    // should within the receiver's window
+
+    // in real-world each segment should have its own timer
+    std::list<TCPSegment> _segments_pending{};
     bool _syned{false};
     bool _fined{false};
-    bool zero_window_size{false};
+
+    RetransmissionTimer _timer{};
+    unsigned int _consecutive_retransmissions{0};
 
   private:
     // only use this method when sending a segment at its first time
