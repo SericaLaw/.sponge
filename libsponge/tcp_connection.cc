@@ -11,7 +11,7 @@
 using namespace std;
 
 size_t TCPConnection::remaining_outbound_capacity() const {
-    return _receiver.stream_out().remaining_capacity();
+    return _sender.stream_in().remaining_capacity();
 }
 
 size_t TCPConnection::bytes_in_flight() const {
