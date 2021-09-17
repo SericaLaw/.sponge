@@ -13,9 +13,6 @@
 
 // You will need to add private members to the class declaration in `network_interface.hh`
 
-template <typename... Targs>
-void DUMMY_CODE(Targs &&... /* unused */) {}
-
 using namespace std;
 
 //! \param[in] ethernet_address Ethernet (what ARP calls "hardware") address of the interface
@@ -39,7 +36,7 @@ void NetworkInterface::send_datagram(const InternetDatagram &dgram, const Addres
         if (time_expired > _clock) {    // cache valid
             frame.header().dst = hw_address;
             frame.header().type = EthernetHeader::TYPE_IPv4;
-            frame.payload() = dgram.serialize();
+            frame.payload() = move(dgram.serialize());
             _frames_out.push(frame);
             return;
         }
@@ -60,7 +57,7 @@ void NetworkInterface::send_datagram(const InternetDatagram &dgram, const Addres
     arp_req.sender_ethernet_address = _ethernet_address;
     arp_req.sender_ip_address = _ip_address.ipv4_numeric();
     arp_req.target_ip_address = next_hop_ip;
-    frame.payload() = arp_req.serialize();
+    frame.payload() = move(arp_req.serialize());
     _frames_out.push(frame);
 }
 
@@ -99,8 +96,8 @@ optional<InternetDatagram> NetworkInterface::recv_frame(const EthernetFrame &fra
                 arp_msg.sender_ip_address = _ip_address.ipv4_numeric();
                 arp_msg.target_ethernet_address = sender_ethernet_address;
                 arp_msg.target_ip_address = sender_ip_address;
-                arp_reply_frame.payload() = arp_msg.serialize();
-                _frames_out.push(arp_reply_frame);
+                arp_reply_frame.payload() = move(arp_msg.serialize());
+                _frames_out.push(move(arp_reply_frame));
             }
         }
 

@@ -35,7 +35,7 @@ void Trie::insert(Entry entry) {
         mask >>= 1;
         --prefix_length;
     }
-    cur->entry() = entry;
+    cur->entry() = move(entry);
 }
 
 std::optional<Entry> Trie::longest_prefix_match(uint32_t ip) {
