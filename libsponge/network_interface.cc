@@ -35,8 +35,8 @@ void NetworkInterface::send_datagram(const InternetDatagram &dgram, const Addres
     EthernetFrame frame;
     frame.header().src = _ethernet_address;
     if (_arp_table.count(next_hop_ip) > 0) {
-        auto [hw_address, ttl] = _arp_table[next_hop_ip];
-        if (ttl > 0) {
+        auto [hw_address, time_expired] = _arp_table[next_hop_ip];
+        if (time_expired > _clock) {    // cache valid
             frame.header().dst = hw_address;
             frame.header().type = EthernetHeader::TYPE_IPv4;
             frame.payload() = dgram.serialize();
@@ -85,7 +85,7 @@ optional<InternetDatagram> NetworkInterface::recv_frame(const EthernetFrame &fra
             // learn arp mapping
             uint32_t sender_ip_address = arp_msg.sender_ip_address;
             EthernetAddress sender_ethernet_address = arp_msg.sender_ethernet_address;
-            _arp_table[sender_ip_address] = make_pair(sender_ethernet_address, _cache_ttl_ms);
+            _arp_table[sender_ip_address] = make_pair(sender_ethernet_address, _clock + _cache_ttl_ms);
 
             uint32_t target_ip_address = arp_msg.target_ip_address;
 
@@ -121,14 +121,4 @@ optional<InternetDatagram> NetworkInterface::recv_frame(const EthernetFrame &fra
 //! \param[in] ms_since_last_tick the number of milliseconds since the last call to this method
 void NetworkInterface::tick(const size_t ms_since_last_tick) {
     _clock += ms_since_last_tick;
-    // refresh
-    for (auto it = _arp_table.begin(); it != _arp_table.end();) {
-        auto [hw_address, ttl] = it->second;
-        if (ttl <= ms_since_last_tick) {
-            _arp_table.erase(it++);
-        } else {
-            it->second.second -= ms_since_last_tick;
-            ++it;
-        }
-    }
 }
