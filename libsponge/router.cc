@@ -29,17 +29,25 @@ void Router::add_route(const uint32_t route_prefix,
     cerr << "DEBUG: adding route " << Address::from_ipv4_numeric(route_prefix).ip() << "/" << int(prefix_length)
          << " => " << (next_hop.has_value() ? next_hop->ip() : "(direct)") << " on interface " << interface_num << "\n";
 
-    _root_table.insert(Entry{route_prefix, prefix_length, next_hop, interface_num});
+    //    _route_table.insert(Entry{route_prefix, prefix_length, next_hop, interface_num});
+    _route_table.push_back(Entry{route_prefix, prefix_length, next_hop, interface_num});
 }
 
 //! \param[in] dgram The datagram to be routed
 void Router::route_one_datagram(InternetDatagram &dgram) {
-    DUMMY_CODE(dgram);
-    // Your code here.
-    --dgram.header().ttl;
-    if (dgram.header().ttl == 0) return;
+    if (dgram.header().ttl <= 1) return;
 
-    optional<Entry> entry = _root_table.longest_prefix_match(dgram.header().dst);
+    --dgram.header().ttl;
+    uint32_t dst = dgram.header().dst;
+    //    optional<Entry> entry = _root_table.longest_prefix_match(dgram.header().dst);
+    optional<Entry> entry = {};
+    for (auto& e : _route_table) {
+        if (match(e.route_prefix, e.prefix_length, dst)) {
+            if (not entry.has_value() or entry.value().prefix_length < e.prefix_length) {
+                entry = e;
+            }
+        }
+    }
     if (not entry.has_value()) {
         return;
     }
@@ -60,4 +68,8 @@ void Router::route() {
             queue.pop();
         }
     }
+}
+bool Router::match(uint32_t route_prefix, uint8_t prefix_length, uint32_t target_ip) {
+    uint32_t mask = prefix_length == 0 ? 0 : 0xffffffff << (32 - prefix_length);
+    return (route_prefix & mask) == (target_ip & mask);
 }

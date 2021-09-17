@@ -16,9 +16,9 @@ std::optional<std::shared_ptr<TrieNode>> TrieNode::get_child(uint8_t child) {
 }
 
 void Trie::insert(Entry entry) {
-    uint32_t routePrefix = entry.routePrefix;
-    uint8_t prefixLength = entry.prefixLength;
-    uint32_t prefix = ((0xffffffff << (32 - prefixLength)) & routePrefix);
+    uint32_t route_prefix = entry.route_prefix;
+    uint8_t prefix_length = entry.prefix_length;
+    uint32_t prefix = ((0xffffffff << (32 - prefix_length)) & route_prefix);
     shared_ptr<TrieNode> cur = _root;
     uint32_t mask = (1 << 31);
     while (prefix > 0) {

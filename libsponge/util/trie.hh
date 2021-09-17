@@ -8,15 +8,15 @@
 #include <memory>
 
 struct Entry {
-    uint32_t routePrefix{0};
-    uint8_t prefixLength{0};
+    uint32_t route_prefix{0};
+    uint8_t prefix_length{0};
     std::optional<Address> next_hop{};
     size_t interface_num{0};
 };
 
 class TrieNode {
   private:
-    std::unordered_map<uint8_t, std::shared_ptr<TrieNode>> _children;
+    std::unordered_map<uint8_t, std::shared_ptr<TrieNode>> _children{};
     std::optional<Entry> _entry{};
 
   public:
