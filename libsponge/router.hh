@@ -2,6 +2,7 @@
 #define SPONGE_LIBSPONGE_ROUTER_HH
 
 #include "network_interface.hh"
+#include "trie.hh"
 
 #include <optional>
 #include <queue>
@@ -48,6 +49,7 @@ class Router {
     //! as specified by the route with the longest prefix_length that matches the
     //! datagram's destination address.
     void route_one_datagram(InternetDatagram &dgram);
+    Trie _root_table{};
 
   public:
     //! Add an interface to the router
