@@ -81,7 +81,6 @@ optional<InternetDatagram> NetworkInterface::recv_frame(const EthernetFrame &fra
         ARPMessage arp_msg;
         ParseResult res = arp_msg.parse(frame.payload());
         if (res == ParseResult::NoError) {
-
             // learn arp mapping
             uint32_t sender_ip_address = arp_msg.sender_ip_address;
             EthernetAddress sender_ethernet_address = arp_msg.sender_ethernet_address;
@@ -110,7 +109,11 @@ optional<InternetDatagram> NetworkInterface::recv_frame(const EthernetFrame &fra
             auto size = _dgram_pending.size();
             auto& [dgram, next_hop] = _dgram_pending.front();
             send_datagram(dgram, next_hop);
-            if (size < _dgram_pending.size()) break;
+            if (size < _dgram_pending.size()) {
+                // dgram at head failed to send again
+                _dgram_pending.pop();
+                break;
+            }
             _dgram_pending.pop();
         }
     }
