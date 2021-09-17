@@ -15,8 +15,6 @@ using namespace std;
 
 // You will need to add private members to the class declaration in `router.hh`
 
-template <typename... Targs>
-void DUMMY_CODE(Targs &&... /* unused */) {}
 
 //! \param[in] route_prefix The "up-to-32-bit" IPv4 address prefix to match the datagram's destination address against
 //! \param[in] prefix_length For this route to be applicable, how many high-order (most-significant) bits of the route_prefix will need to match the corresponding bits of the datagram's destination address?
@@ -29,25 +27,18 @@ void Router::add_route(const uint32_t route_prefix,
     cerr << "DEBUG: adding route " << Address::from_ipv4_numeric(route_prefix).ip() << "/" << int(prefix_length)
          << " => " << (next_hop.has_value() ? next_hop->ip() : "(direct)") << " on interface " << interface_num << "\n";
 
-    //    _route_table.insert(Entry{route_prefix, prefix_length, next_hop, interface_num});
-    _route_table.push_back(Entry{route_prefix, prefix_length, next_hop, interface_num});
+    _route_table.insert(Entry{route_prefix, prefix_length, next_hop, interface_num});
+    // _route_table.push_back(Entry{route_prefix, prefix_length, next_hop, interface_num});
 }
 
 //! \param[in] dgram The datagram to be routed
 void Router::route_one_datagram(InternetDatagram &dgram) {
     if (dgram.header().ttl <= 1) return;
-
     --dgram.header().ttl;
+
     uint32_t dst = dgram.header().dst;
-    //    optional<Entry> entry = _root_table.longest_prefix_match(dgram.header().dst);
-    optional<Entry> entry = {};
-    for (auto& e : _route_table) {
-        if (match(e.route_prefix, e.prefix_length, dst)) {
-            if (not entry.has_value() or entry.value().prefix_length < e.prefix_length) {
-                entry = e;
-            }
-        }
-    }
+    optional<Entry> entry = _route_table.longest_prefix_match(dst);
+    // optional<Entry> entry = longest_prefix_match(dst);
     if (not entry.has_value()) {
         return;
     }
@@ -69,7 +60,20 @@ void Router::route() {
         }
     }
 }
-bool Router::match(uint32_t route_prefix, uint8_t prefix_length, uint32_t target_ip) {
-    uint32_t mask = prefix_length == 0 ? 0 : 0xffffffff << (32 - prefix_length);
-    return (route_prefix & mask) == (target_ip & mask);
-}
+
+// bool Router::match(uint32_t route_prefix, uint8_t prefix_length, uint32_t target_ip) {
+//     uint32_t mask = prefix_length == 0 ? 0 : 0xffffffff << (32 - prefix_length);
+//     return (route_prefix & mask) == (target_ip & mask);
+// }
+
+// optional<Entry> Router::longest_prefix_match(uint32_t target_ip) {
+//     optional<Entry> entry = {};
+//     for (auto& e : _route_table) {
+//         if (match(e.route_prefix, e.prefix_length, target_ip)) {
+//             if (not entry.has_value() or entry.value().prefix_length < e.prefix_length) {
+//                 entry = e;
+//             }
+//         }
+//     }
+//     return entry;
+// }

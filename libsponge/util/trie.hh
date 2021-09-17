@@ -28,6 +28,7 @@ class TrieNode {
 class Trie {
   private:
     std::shared_ptr<TrieNode> _root;
+    std::optional<Entry> _default{};
   public:
     Trie(): _root(std::make_shared<TrieNode>(TrieNode{})){};
     void insert(Entry entry);
