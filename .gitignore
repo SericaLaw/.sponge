@@ -1,0 +1,6 @@
+/build
+/.ccls-cache
+CMakeFiles
+cmake-build-debug
+.idea
+libsponge/main.cpp
